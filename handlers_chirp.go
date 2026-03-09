@@ -24,9 +24,13 @@ func handlerValidateChirp(w http.ResponseWriter, r *http.Request) {
 		responseWithError(w, http.StatusBadRequest, "Chirp is too long", nil)
 		return
 	}
-
+	badwords := map[string]struct{}{
+		"kerfuffle": {},
+		"sharbert":  {},
+		"fornax":    {},
+	}
 	respData := validResponse{
-		CleanedBody: censorString(chirp.Body, []string{"kerfuffle", "sharbert", "fornax"}),
+		CleanedBody: censorString(chirp.Body, badwords),
 	}
 	respondWithJSON(w, 200, respData)
 }

@@ -8,8 +8,13 @@ func TestCensorChirp(t *testing.T) {
 	str2 := "Man, kerfuffle this sharbert fornax . It's unbeliable!"
 	str2Answer := "Man, **** this **** **** . It's unbeliable!"
 
-	cleanedRes1 := censorString(str1, []string{"kerfuffle"})
-	cleanedRes2 := censorString(str2, []string{"kerfuffle", "sharbert", "fornax"})
+	cleanedRes1 := censorString(str1, map[string]struct{}{
+		"kerfuffle": {},
+	})
+	cleanedRes2 := censorString(str2, map[string]struct{}{
+		"kerfuffle": {},
+		"sharbert":  {},
+		"fornax":    {}})
 	if str1Answer != cleanedRes1 {
 		t.Errorf("%s IS NOT EQUAL TO %s", cleanedRes1, str1Answer)
 	}

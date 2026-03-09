@@ -4,14 +4,11 @@ import (
 	"strings"
 )
 
-func censorString(s string, badwords []string) string {
+func censorString(s string, badwords map[string]struct{}) string {
 	words := strings.Split(s, " ")
 	for wIdx, word := range words {
-		for _, badword := range badwords {
-			if strings.ToLower(word) == badword {
-				words[wIdx] = "****"
-				break
-			}
+		if _, ok := badwords[strings.ToLower(word)]; ok {
+			words[wIdx] = "****"
 		}
 	}
 	return strings.Join(words, " ")
