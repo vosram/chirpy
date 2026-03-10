@@ -9,38 +9,8 @@ import (
 	"github.com/vosram/chirpy/internal/database"
 )
 
-func handlerValidateChirp(w http.ResponseWriter, r *http.Request) {
-	type validatedChirp struct {
-		Body string `json:"body"`
-	}
-
-	type validResponse struct {
-		CleanedBody string `json:"cleaned_body"`
-	}
-
-	var chirp validatedChirp
-	err := json.NewDecoder(r.Body).Decode(&chirp)
-	if err != nil {
-		responseWithError(w, http.StatusInternalServerError, "Couldn't decode request body", err)
-		return
-	}
-	if len(chirp.Body) > 140 {
-		responseWithError(w, http.StatusBadRequest, "Chirp is too long", nil)
-		return
-	}
-	badwords := map[string]struct{}{
-		"kerfuffle": {},
-		"sharbert":  {},
-		"fornax":    {},
-	}
-	respData := validResponse{
-		CleanedBody: censorString(chirp.Body, badwords),
-	}
-	respondWithJSON(w, 200, respData)
-}
-
 func (cfg *apiConfig) handlerCreateChirp(w http.ResponseWriter, r *http.Request) {
-	type jsonBody struct {
+	type parameters struct {
 		Body   string    `json:"body"`
 		UserID uuid.UUID `json:"user_id"`
 	}
@@ -51,14 +21,14 @@ func (cfg *apiConfig) handlerCreateChirp(w http.ResponseWriter, r *http.Request)
 		Body      string    `json:"body"`
 		UserID    uuid.UUID `json:"user_id"`
 	}
-	var chirp jsonBody
-	err := json.NewDecoder(r.Body).Decode(&chirp)
+	var params parameters
+	err := json.NewDecoder(r.Body).Decode(&params)
 	if err != nil {
 		responseWithError(w, http.StatusInternalServerError, "Couldn't parse json body", err)
 		return
 	}
 
-	if len(chirp.Body) > 140 {
+	if len(params.Body) > 140 {
 		responseWithError(w, http.StatusBadRequest, "Chirp is too long", nil)
 		return
 	}
@@ -69,23 +39,21 @@ func (cfg *apiConfig) handlerCreateChirp(w http.ResponseWriter, r *http.Request)
 		"sharbert":  {},
 		"fornax":    {},
 	}
-	cleanBody := censorString(chirp.Body, badwords)
+	cleanBody := censorString(params.Body, badwords)
 	newChirp, err := cfg.db.CreateChirp(r.Context(), database.CreateChirpParams{
 		Body:   cleanBody,
-		UserID: chirp.UserID,
+		UserID: params.UserID,
 	})
-
 	if err != nil {
 		responseWithError(w, http.StatusInternalServerError, "Couldn't create chirp in database", err)
 		return
 	}
 
-	res := jsonResponse{
+	respondWithJSON(w, http.StatusCreated, jsonResponse{
 		ID:        newChirp.ID,
 		CreatedAt: newChirp.CreatedAt,
 		UpdatedAt: newChirp.UpdatedAt,
 		Body:      newChirp.Body,
 		UserID:    newChirp.UserID,
-	}
-	respondWithJSON(w, http.StatusCreated, res)
+	})
 }
