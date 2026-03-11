@@ -30,7 +30,7 @@ func (cfg *apiConfig) handlerCreateUser(w http.ResponseWriter, r *http.Request) 
 
 	hashedP, err := auth.HashPassword(reqBody.Password)
 	if err != nil {
-		responseWithError(w, http.StatusInternalServerError, "problem creating user", err)
+		responseWithError(w, http.StatusInternalServerError, "Couldn't hash password", err)
 		return
 	}
 
@@ -42,6 +42,7 @@ func (cfg *apiConfig) handlerCreateUser(w http.ResponseWriter, r *http.Request) 
 		responseWithError(w, http.StatusInternalServerError, "Couldn't create user in database", err)
 		return
 	}
+
 	respBody := jsonResponse{
 		ID:        user.ID,
 		CreatedAt: user.CreatedAt,
@@ -76,12 +77,8 @@ func (cfg *apiConfig) handlerLoginUser(w http.ResponseWriter, r *http.Request) {
 	}
 
 	passMatch, err := auth.CheckPasswordHash(reqBody.Password, dbUser.HashedPassword)
-	if err != nil {
+	if err != nil || !passMatch {
 		responseWithError(w, http.StatusInternalServerError, "Error checking password match", err)
-		return
-	}
-	if passMatch == false {
-		responseWithError(w, http.StatusUnauthorized, "Incorrect email or password", nil)
 		return
 	}
 
