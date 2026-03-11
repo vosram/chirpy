@@ -57,3 +57,31 @@ func (cfg *apiConfig) handlerCreateChirp(w http.ResponseWriter, r *http.Request)
 		UserID:    newChirp.UserID,
 	})
 }
+
+func (cfg *apiConfig) handlerGetAllChirps(w http.ResponseWriter, r *http.Request) {
+	type resChrip struct {
+		ID        uuid.UUID `json:"id"`
+		CreatedAt time.Time `json:"created_at"`
+		UpdatedAt time.Time `json:"Updated_at"`
+		Body      string    `json:"body"`
+		UserID    uuid.UUID `json:"user_id"`
+	}
+	dbChirps, err := cfg.db.GetAllChirps(r.Context())
+	if err != nil {
+		responseWithError(w, http.StatusInternalServerError, "Couldn't get all chirps", err)
+		return
+	}
+
+	finalChirps := make([]resChrip, len(dbChirps))
+	for i, dbChirp := range dbChirps {
+		finalChirps[i] = resChrip{
+			ID:        dbChirp.ID,
+			CreatedAt: dbChirp.CreatedAt,
+			UpdatedAt: dbChirp.UpdatedAt,
+			Body:      dbChirp.Body,
+			UserID:    dbChirp.UserID,
+		}
+	}
+
+	respondWithJSON(w, http.StatusOK, finalChirps)
+}
