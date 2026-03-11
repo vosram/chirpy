@@ -2,6 +2,7 @@ package main
 
 import (
 	"encoding/json"
+	"errors"
 	"net/http"
 	"time"
 
@@ -84,4 +85,41 @@ func (cfg *apiConfig) handlerGetAllChirps(w http.ResponseWriter, r *http.Request
 	}
 
 	respondWithJSON(w, http.StatusOK, finalChirps)
+}
+
+func (cfg *apiConfig) handlerGetChirpById(w http.ResponseWriter, r *http.Request) {
+	type resChrip struct {
+		ID        uuid.UUID `json:"id"`
+		CreatedAt time.Time `json:"created_at"`
+		UpdatedAt time.Time `json:"Updated_at"`
+		Body      string    `json:"body"`
+		UserID    uuid.UUID `json:"user_id"`
+	}
+
+	chirpIDstr := r.PathValue("chirpID")
+	if len(chirpIDstr) == 0 {
+		err := errors.New("chirpID not available from request")
+		responseWithError(w, http.StatusInternalServerError, "Couldn't get chirpID from request", err)
+		return
+	}
+
+	chirpUUID, err := uuid.Parse(chirpIDstr)
+	if err != nil {
+		responseWithError(w, http.StatusBadRequest, "chirp id was not a valid id", err)
+		return
+	}
+
+	dbChirp, err := cfg.db.GetChirpById(r.Context(), chirpUUID)
+	if err != nil {
+		responseWithError(w, http.StatusNotFound, "Couldn't find that chirp", err)
+		return
+	}
+
+	respondWithJSON(w, http.StatusOK, resChrip{
+		ID:        dbChirp.ID,
+		CreatedAt: dbChirp.CreatedAt,
+		UpdatedAt: dbChirp.UpdatedAt,
+		Body:      dbChirp.Body,
+		UserID:    dbChirp.UserID,
+	})
 }
