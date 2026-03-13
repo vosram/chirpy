@@ -7,6 +7,7 @@ import (
 	"time"
 
 	"github.com/google/uuid"
+	"github.com/vosram/chirpy/internal/auth"
 	"github.com/vosram/chirpy/internal/database"
 )
 
@@ -29,6 +30,16 @@ func (cfg *apiConfig) handlerCreateChirp(w http.ResponseWriter, r *http.Request)
 		return
 	}
 
+	tokenStr, err := auth.GetBearerToken(r.Header)
+	if err != nil {
+		responseWithError(w, http.StatusUnauthorized, "Not authorized", err)
+		return
+	}
+	userId, err := auth.ValidateJWT(tokenStr, cfg.JWTSecret)
+	if err != nil {
+		responseWithError(w, http.StatusUnauthorized, "Not authorized", err)
+	}
+
 	if len(params.Body) > 140 {
 		responseWithError(w, http.StatusBadRequest, "Chirp is too long", nil)
 		return
@@ -43,7 +54,7 @@ func (cfg *apiConfig) handlerCreateChirp(w http.ResponseWriter, r *http.Request)
 	cleanBody := censorString(params.Body, badwords)
 	newChirp, err := cfg.db.CreateChirp(r.Context(), database.CreateChirpParams{
 		Body:   cleanBody,
-		UserID: params.UserID,
+		UserID: userId,
 	})
 	if err != nil {
 		responseWithError(w, http.StatusInternalServerError, "Couldn't create chirp in database", err)

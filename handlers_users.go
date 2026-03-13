@@ -58,16 +58,25 @@ func (cfg *apiConfig) handlerLoginUser(w http.ResponseWriter, r *http.Request) {
 		CreatedAt time.Time `json:"created_at"`
 		UpdatedAt time.Time `json:"updated_at"`
 		Email     string    `json:"email"`
+		Token     string    `json:"token"`
 	}
 	type params struct {
-		Email    string `json:"email"`
-		Password string `json:"password"`
+		Email            string `json:"email"`
+		Password         string `json:"password"`
+		ExpiredInSeconds int    `json:"expires_in_seconds"`
 	}
 	var reqBody params
 	err := json.NewDecoder(r.Body).Decode(&reqBody)
 	if err != nil {
 		responseWithError(w, http.StatusInternalServerError, "couldn't decode request body", err)
 		return
+	}
+
+	expInSeconds := 3600
+	if reqBody.ExpiredInSeconds > 0 {
+		if reqBody.ExpiredInSeconds < 3600 {
+			expInSeconds = reqBody.ExpiredInSeconds
+		}
 	}
 
 	dbUser, err := cfg.db.GetUserByEmail(r.Context(), reqBody.Email)
@@ -82,10 +91,16 @@ func (cfg *apiConfig) handlerLoginUser(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
+	newJWT, err := auth.MakeJWT(dbUser.ID, cfg.JWTSecret, time.Second*time.Duration(expInSeconds))
+	if err != nil {
+		responseWithError(w, http.StatusInternalServerError, "error issusing auth token", err)
+		return
+	}
 	respondWithJSON(w, http.StatusOK, jsonResponse{
 		ID:        dbUser.ID,
 		CreatedAt: dbUser.CreatedAt,
 		UpdatedAt: dbUser.UpdatedAt,
 		Email:     dbUser.Email,
+		Token:     newJWT,
 	})
 }

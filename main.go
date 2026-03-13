@@ -16,6 +16,7 @@ type apiConfig struct {
 	fileserverHits atomic.Int32
 	db             *database.Queries
 	platform       string
+	JWTSecret      string
 }
 
 func main() {
@@ -28,6 +29,10 @@ func main() {
 	if platform == "" {
 		log.Fatal("PLATFORM must be set")
 	}
+	JWTSecret := os.Getenv("JWT_SECRET")
+	if JWTSecret == "" {
+		log.Fatal("JWT_SECRET must be set")
+	}
 
 	dbConn, err := sql.Open("postgres", dbUrl)
 	if err != nil {
@@ -37,7 +42,7 @@ func main() {
 
 	const port = ":8080"
 	mux := http.NewServeMux()
-	apiConf := apiConfig{db: dbQueries, platform: platform}
+	apiConf := apiConfig{db: dbQueries, platform: platform, JWTSecret: JWTSecret}
 
 	fsHandler := http.StripPrefix("/app/", apiConf.middlewareMetricsInc(http.FileServer(http.Dir("."))))
 	mux.Handle("/app/", fsHandler)

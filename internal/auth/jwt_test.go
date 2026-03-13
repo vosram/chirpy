@@ -2,6 +2,7 @@ package auth
 
 import (
 	"fmt"
+	"net/http"
 	"testing"
 	"time"
 
@@ -118,6 +119,52 @@ func TestValidateJWT(t *testing.T) {
 			if gotUserID != tt.wantUserID {
 				t.Errorf("ValidateJWT() gotUserID = %v, want %v", gotUserID, tt.wantUserID)
 			}
+		})
+	}
+}
+
+func TestGetBearerToken(t *testing.T) {
+	tests := []struct {
+		name               string
+		containsAuthHeader bool
+		initialBearerToken string
+		expectedToken      string
+		wantErr            bool
+	}{
+		{
+			name:               "Valid token",
+			containsAuthHeader: true,
+			initialBearerToken: "Bearer imagineatokenstringhere",
+			expectedToken:      "imagineatokenstringhere",
+			wantErr:            false,
+		},
+		{
+			name:               "No auth header",
+			containsAuthHeader: false,
+			initialBearerToken: "",
+			expectedToken:      "",
+			wantErr:            true,
+		},
+	}
+
+	for _, test := range tests {
+		t.Run(test.name, func(t *testing.T) {
+			header := http.Header{}
+			if test.containsAuthHeader {
+				header.Add("Authorization", test.initialBearerToken)
+			}
+
+			tokenStr, err := GetBearerToken(header)
+			if err != nil && !test.wantErr {
+				t.Errorf("unwanted error: %s", err.Error())
+			}
+			if tokenStr != test.expectedToken {
+				t.Errorf("Token %s is not the expected: %s", tokenStr, test.expectedToken)
+			}
+			if err == nil && test.wantErr {
+				t.Errorf("expected error and got none")
+			}
+
 		})
 	}
 }
