@@ -13,8 +13,7 @@ import (
 
 func (cfg *apiConfig) handlerCreateChirp(w http.ResponseWriter, r *http.Request) {
 	type parameters struct {
-		Body   string    `json:"body"`
-		UserID uuid.UUID `json:"user_id"`
+		Body string `json:"body"`
 	}
 	type jsonResponse struct {
 		ID        uuid.UUID `json:"id"`
@@ -23,21 +22,23 @@ func (cfg *apiConfig) handlerCreateChirp(w http.ResponseWriter, r *http.Request)
 		Body      string    `json:"body"`
 		UserID    uuid.UUID `json:"user_id"`
 	}
-	var params parameters
-	err := json.NewDecoder(r.Body).Decode(&params)
-	if err != nil {
-		responseWithError(w, http.StatusInternalServerError, "Couldn't parse json body", err)
-		return
-	}
 
 	tokenStr, err := auth.GetBearerToken(r.Header)
 	if err != nil {
-		responseWithError(w, http.StatusUnauthorized, "Not authorized", err)
+		responseWithError(w, http.StatusUnauthorized, "Couldn't find JWT", err)
 		return
 	}
 	userId, err := auth.ValidateJWT(tokenStr, cfg.JWTSecret)
 	if err != nil {
 		responseWithError(w, http.StatusUnauthorized, "Not authorized", err)
+		return
+	}
+
+	var params parameters
+	err = json.NewDecoder(r.Body).Decode(&params)
+	if err != nil {
+		responseWithError(w, http.StatusInternalServerError, "Couldn't parse json body", err)
+		return
 	}
 
 	if len(params.Body) > 140 {

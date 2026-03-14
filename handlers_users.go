@@ -72,11 +72,9 @@ func (cfg *apiConfig) handlerLoginUser(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	expInSeconds := 3600
-	if reqBody.ExpiredInSeconds > 0 {
-		if reqBody.ExpiredInSeconds < 3600 {
-			expInSeconds = reqBody.ExpiredInSeconds
-		}
+	expInSeconds := time.Hour
+	if reqBody.ExpiredInSeconds > 0 && reqBody.ExpiredInSeconds < 3600 {
+		expInSeconds = time.Duration(reqBody.ExpiredInSeconds) * time.Second
 	}
 
 	dbUser, err := cfg.db.GetUserByEmail(r.Context(), reqBody.Email)
@@ -91,7 +89,7 @@ func (cfg *apiConfig) handlerLoginUser(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	newJWT, err := auth.MakeJWT(dbUser.ID, cfg.JWTSecret, time.Second*time.Duration(expInSeconds))
+	accessToken, err := auth.MakeJWT(dbUser.ID, cfg.JWTSecret, expInSeconds)
 	if err != nil {
 		responseWithError(w, http.StatusInternalServerError, "error issusing auth token", err)
 		return
@@ -101,6 +99,6 @@ func (cfg *apiConfig) handlerLoginUser(w http.ResponseWriter, r *http.Request) {
 		CreatedAt: dbUser.CreatedAt,
 		UpdatedAt: dbUser.UpdatedAt,
 		Email:     dbUser.Email,
-		Token:     newJWT,
+		Token:     accessToken,
 	})
 }

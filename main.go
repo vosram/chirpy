@@ -42,7 +42,11 @@ func main() {
 
 	const port = ":8080"
 	mux := http.NewServeMux()
-	apiConf := apiConfig{db: dbQueries, platform: platform, JWTSecret: JWTSecret}
+	apiConf := apiConfig{
+		db:        dbQueries,
+		platform:  platform,
+		JWTSecret: JWTSecret,
+	}
 
 	fsHandler := http.StripPrefix("/app/", apiConf.middlewareMetricsInc(http.FileServer(http.Dir("."))))
 	mux.Handle("/app/", fsHandler)
